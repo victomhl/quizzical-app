@@ -8,6 +8,7 @@ function useQuizzical() {
      ********************************************************************/
 
     const [makeAPIRequest, setMakeAPIRequest] = useState(false)
+    const [responseCode, setResponseCode] = useState(null)
     const [quizCategories, setQuizCategories] = useState([])
     const [quiz, setQuiz] = useState({
         areParametersSet: false,
@@ -42,8 +43,14 @@ function useQuizzical() {
     // Make an API request with the parameters set by the user, making QuizPage
     // Component render
     function startQuiz() {
-        console.log(generateURL(quiz.parameters))
-        setMakeAPIRequest(true)
+        // null is a falsy value
+        if (!responseCode) {
+            console.log(generateURL(quiz.parameters))
+            setMakeAPIRequest(true)
+        } else {
+            setResponseCode(null)
+        }
+        
     }
 
     // 
@@ -80,6 +87,7 @@ function useQuizzical() {
             data: [],
             correctAnswers: 0
         })
+        setResponseCode(null)
     }
 
     // Keeps track of changes to the parameters that are use to make the API request
@@ -212,8 +220,10 @@ function useQuizzical() {
         
         fetch("https://opentdb.com/api_category.php")
             .then(res => res.json())
-            .then(data => setQuizCategories(
-            [{id: 0, name: "Any Category"}, ...data.trivia_categories]))
+            .then(
+                data => setQuizCategories(
+                [{id: 0, name: "Any Category"}, ...data.trivia_categories])
+                )
             .finally(updateQuiz({isLoading: false}))
 
     }, [])
@@ -227,7 +237,10 @@ function useQuizzical() {
 
             fetch(generateURL(quiz.parameters))
                 .then(res => res.json())
-                .then(json => updateQuiz({data: formatQuizData(json.results)}))
+                .then(json => {
+                    updateQuiz({data: formatQuizData(json.results)})
+                    setResponseCode(json.response_code)
+                })
                 .finally(() => {
                     updateQuiz({isLoading: false, areParametersSet: true})
                     setMakeAPIRequest(false)
@@ -241,14 +254,13 @@ function useQuizzical() {
     return {
         quiz,
         quizCategories,
-        updateQuiz,
+        responseCode,
         changeQuizParamters,
         startQuiz,
         changeQuizStatus,
         quitQuiz,
         handleParametersChange,
-        changeAnswer,
-        setMakeAPIRequest
+        changeAnswer
     }
 }
 
